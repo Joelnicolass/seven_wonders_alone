@@ -1,13 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seven_wonders_alone/data/datasource/local/local_datasource.dart';
+import 'package:seven_wonders_alone/data/repositories/card_repository_impl.dart';
 import 'package:seven_wonders_alone/domain/entities/card.dart';
 import 'package:seven_wonders_alone/presentation/components/action_card/action_card.dart';
 import 'package:seven_wonders_alone/presentation/components/leader_card/leader_card.dart';
 import 'package:seven_wonders_alone/presentation/components/swiper/swiper.dart';
-
-const num LENGHT_LEAEDERS_CARDS = 5;
-const num LENGHT_ACTION_CARDS = 12;
 
 void main() {
   runApp(
@@ -44,88 +44,198 @@ class MainView extends StatefulWidget {
 }
 
 class _MainViewState extends State<MainView> {
+  late List<LeaderCard> leaderCards = [];
+  late List<ActionCard> actionCards = [];
+  var isLeaderSelected = false;
+  List<LeaderCard> leaderCardSelected = [];
+
+  var loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    getCardsData() async {
+      final datasource = CardLocalDatasourceImpl();
+      final repository = CardRepositoryImpl(datasource);
+      final leaderCardsData = await repository.getLeaderCards();
+      final actionCardsData = await repository.getActionCards();
+      return {
+        'leaderCardsData': leaderCardsData,
+        'actionCardsData': actionCardsData,
+      };
+    }
+
+    getCardsData().then((value) {
+      setState(() {
+        leaderCards = value['leaderCardsData']!
+            .map<LeaderCard>((card) => LeaderCard(card: card))
+            .toList();
+        actionCards = value['actionCardsData']!
+            .map<ActionCard>((card) => ActionCard(card: card))
+            .toList();
+      });
+    });
+
+    delay() async {
+      await Future.delayed(const Duration(seconds: 0));
+    }
+
+    delay().then((value) {
+      setState(() {
+        loading = false;
+      });
+    });
+  }
+
+  shuffle<T>(List<T> list) {
+    var random = Random();
+    for (var i = list.length - 1; i > 0; i--) {
+      var n = random.nextInt(i + 1);
+      var temp = list[i];
+      list[i] = list[n];
+      list[n] = temp;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<LeaderCard> generateLeaderCards() {
-      List<LeaderCard> leaders = [];
-      for (int i = 0; i < LENGHT_LEAEDERS_CARDS; i++) {
-        leaders.add(LeaderCard(
-            card: GenericCard(
-          id: i.toString(),
-          name: 'Leader $i',
-          imageFront: 'assets/cards/images/leader_${i + 1}.png',
-          imageBack: 'assets/cards/images/leader_dorsal.png',
-          mode: CardMode.back,
-        )));
-      }
-      return leaders;
-    }
-
-    List<ActionCard> generateActionCards() {
-      List<ActionCard> actions = [];
-      for (int i = 0; i < LENGHT_ACTION_CARDS; i++) {
-        actions.add(ActionCard(
-          card: GenericCard(
-            id: i.toString(),
-            name: 'Action $i',
-            imageFront: 'assets/cards/images/action_${i + 1}.png',
-            imageBack: 'assets/cards/images/action_dorsal.png',
-            mode: CardMode.back,
-          ),
-        ));
-      }
-      return actions;
-    }
-
-    var leaderCards = <LeaderCard>[
-      ...generateLeaderCards().map((leader) {
-        if (leader.card.id == '0') {
-          leader.card.mode = CardMode.front;
-        }
-        return leader;
-      }),
-    ];
-
-    var actionCards = <ActionCard>[
-      ...generateActionCards().map((action) {
-        if (action.card.id == '0') {
-          action.card.mode = CardMode.front;
-        }
-        return action;
-      }),
-    ];
-
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Flexible(
-              child: Swiper(
-                numberOfCardsDisplayed: 3,
-                backCardOffset: const Offset(0, 20),
-                onEnd: () {},
-                onSwipe: (prevIndex, currentIndex, direction) {
-                  leaderCards[prevIndex].card.mode = CardMode.back;
-                  leaderCards[currentIndex!].card.mode = CardMode.front;
-                  return true;
-                },
-                cards: leaderCards,
+        child: Builder(builder: (context) {
+          if (loading) {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Preparando cartas...',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                const Center(
+                  child: CircularProgressIndicator(
+                    color: Color.fromARGB(255, 204, 188, 168),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Column(
+            children: [
+              Flexible(
+                flex: 2,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.6,
+                  alignment: Alignment.center,
+                  child: Swiper(
+                    onInit: () {
+                      if (!isLeaderSelected) {
+                        shuffle(leaderCards);
+                        leaderCards[0].card.mode = CardMode.front;
+                      }
+                    },
+                    numberOfCardsDisplayed: isLeaderSelected ? 1 : 3,
+                    backCardOffset: const Offset(0, 20),
+                    onEnd: () {
+                      shuffle(leaderCards);
+                      leaderCards[0].card.mode = CardMode.front;
+                    },
+                    onSwipe: (prevIndex, currentIndex, direction) {
+                      leaderCards[prevIndex].card.mode = CardMode.back;
+                      leaderCards[currentIndex!].card.mode = CardMode.front;
+                      return true;
+                    },
+                    cards: leaderCards,
+                    disableSwipe: isLeaderSelected,
+                  ),
+                ),
               ),
-            ),
-            Flexible(
-                child: Swiper(
-              cards: actionCards,
-              numberOfCardsDisplayed: 3,
-              backCardOffset: const Offset(0, 20),
-              onEnd: () {},
-              onSwipe: (prevIndex, currentIndex, direction) {
-                actionCards[prevIndex].card.mode = CardMode.back;
-                actionCards[currentIndex!].card.mode = CardMode.front;
-                return true;
-              },
-            ))
-          ],
-        ),
+              const SizedBox(
+                height: 20,
+              ),
+
+              // Boton seleccion de lider
+
+              isLeaderSelected
+                  ? Flexible(
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          left: MediaQuery.of(context).size.width / 2 -
+                              MediaQuery.of(context).size.width * 0.7 / 2,
+                        ),
+                        child: Swiper(
+                          onInit: () {
+                            shuffle(actionCards);
+                            //actionCards[0].card.mode = CardMode.front;
+                          },
+                          cards: actionCards,
+                          numberOfCardsDisplayed: 3,
+                          backCardOffset: const Offset(0, 20),
+                          onEnd: () {
+                            shuffle(actionCards);
+                            actionCards[0].card.mode = CardMode.front;
+                          },
+                          onSwipe: (prevIndex, currentIndex, direction) {
+                            actionCards[prevIndex].card.mode = CardMode.back;
+                            actionCards[currentIndex!].card.mode =
+                                CardMode.front;
+                            return true;
+                          },
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            var currentCard = leaderCards.firstWhere(
+                                (element) =>
+                                    element.card.mode == CardMode.front);
+                            leaderCardSelected.add(currentCard);
+                            isLeaderSelected = true;
+                          });
+                        },
+                        child: const Text('Seleccionar Lider'),
+                      ),
+                    ),
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.1,
+              ),
+
+              // Boton de finalizar
+
+              isLeaderSelected
+                  ? Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              isLeaderSelected = false;
+                              leaderCardSelected.forEach((element) {
+                                element.card.mode = CardMode.back;
+                              });
+                              leaderCardSelected.clear();
+                              shuffle(leaderCards);
+                              leaderCards[0].card.mode = CardMode.front;
+                              shuffle(actionCards);
+                              actionCards[0].card.mode = CardMode.front;
+                            });
+                          },
+                          child: const Text('Finalizar'),
+                        ),
+                      ),
+                    )
+                  : const SizedBox(),
+            ],
+          );
+        }),
       ),
     );
   }

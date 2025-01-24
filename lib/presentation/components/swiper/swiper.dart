@@ -1,28 +1,31 @@
-import 'dart:async';
-
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter/material.dart';
-import 'package:seven_wonders_alone/domain/entities/card.dart';
 
 class Swiper extends StatelessWidget {
-  List<dynamic> cards;
-  void Function() onEnd;
-  bool Function(int prevIndex, int? currentIndex, CardSwiperDirection direction)
-      onSwipe;
-  int numberOfCardsDisplayed;
-  Offset backCardOffset;
+  final List<dynamic> cards;
+  final dynamic Function() onInit;
+  final void Function() onEnd;
+  final bool Function(
+      int prevIndex, int? currentIndex, CardSwiperDirection direction) onSwipe;
+  final int numberOfCardsDisplayed;
+  final Offset backCardOffset;
+  final bool disableSwipe;
 
-  Swiper(
+  const Swiper(
       {super.key,
       required this.cards,
+      required this.onInit,
       required this.onEnd,
       required this.onSwipe,
       this.numberOfCardsDisplayed = 3,
-      this.backCardOffset = const Offset(0, 0)});
+      this.backCardOffset = const Offset(0, 0),
+      this.disableSwipe = false});
 
   @override
   Widget build(BuildContext context) {
+    onInit();
     return CardSwiper(
+      isDisabled: disableSwipe,
       numberOfCardsDisplayed: numberOfCardsDisplayed,
       backCardOffset: backCardOffset,
       onEnd: () => onEnd(),
