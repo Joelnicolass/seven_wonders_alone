@@ -15,4 +15,14 @@ class CardRepositoryImpl implements CardRepository {
   Future<List<GenericCard>> getActionCards() {
     return _cardDatasource.getActionCards();
   }
+
+  @override
+  Future<List<GenericCard>> getActionBuildWonderCards() {
+    return _cardDatasource.getActionBuildWonderCards();
+  }
+
+  @override
+  Future<List<GenericCard>> getActionSellCards() {
+    return _cardDatasource.getActionSellCards();
+  }
 }

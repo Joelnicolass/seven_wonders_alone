@@ -46,9 +46,12 @@ class MainView extends StatefulWidget {
 class _MainViewState extends State<MainView> {
   late List<LeaderCard> leaderCards = [];
   late List<ActionCard> actionCards = [];
+  late List<ActionCard> actionBuildWonderCards = [];
+  late List<ActionCard> actionSellCards = [];
   var isLeaderSelected = false;
   List<LeaderCard> leaderCardSelected = [];
-
+  var canIABuildWonder = false;
+  var canSellCards = false;
   var loading = true;
 
   @override
@@ -60,9 +63,14 @@ class _MainViewState extends State<MainView> {
       final repository = CardRepositoryImpl(datasource);
       final leaderCardsData = await repository.getLeaderCards();
       final actionCardsData = await repository.getActionCards();
+      final actionBuildWonderCardsData =
+          await repository.getActionBuildWonderCards();
+      final actionSellCardsData = await repository.getActionSellCards();
       return {
         'leaderCardsData': leaderCardsData,
         'actionCardsData': actionCardsData,
+        'actionBuildWonderCardsData': actionBuildWonderCardsData,
+        'actionSellCardsData': actionSellCardsData,
       };
     }
 
@@ -72,6 +80,12 @@ class _MainViewState extends State<MainView> {
             .map<LeaderCard>((card) => LeaderCard(card: card))
             .toList();
         actionCards = value['actionCardsData']!
+            .map<ActionCard>((card) => ActionCard(card: card))
+            .toList();
+        actionBuildWonderCards = value['actionBuildWonderCardsData']!
+            .map<ActionCard>((card) => ActionCard(card: card))
+            .toList();
+        actionSellCards = value['actionSellCardsData']!
             .map<ActionCard>((card) => ActionCard(card: card))
             .toList();
       });
@@ -104,23 +118,8 @@ class _MainViewState extends State<MainView> {
       body: SafeArea(
         child: Builder(builder: (context) {
           if (loading) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Preparando cartas...',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                const Center(
-                  child: CircularProgressIndicator(
-                    color: Color.fromARGB(255, 204, 188, 168),
-                  ),
-                ),
-              ],
+            return const FullScreenLoader(
+              text: 'Cargando cartas...',
             );
           }
 
@@ -237,6 +236,37 @@ class _MainViewState extends State<MainView> {
           );
         }),
       ),
+    );
+  }
+}
+
+class FullScreenLoader extends StatelessWidget {
+  final String text;
+
+  const FullScreenLoader({
+    required this.text,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          text,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(
+          height: 20,
+        ),
+        const Center(
+          child: CircularProgressIndicator(
+            color: Color.fromARGB(255, 204, 188, 168),
+          ),
+        ),
+      ],
     );
   }
 }
