@@ -38,12 +38,12 @@ class CardLocalDatasourceImpl implements CardDatasource {
     final List<GenericCard> actions = [];
     for (int i = 0; i < LENGHT_ACTION_BUILD_WONDER_CARDS; i++) {
       actions.add(GenericCard(
-        id: i.toString(),
-        name: 'Action Build Wonder $i',
-        imageFront: 'assets/cards/images/action_build_wonder_${i + 1}.png',
-        imageBack: 'assets/cards/images/action_dorsal.png',
-        mode: CardMode.back,
-      ));
+          id: i.toString(),
+          name: 'Action Build Wonder $i',
+          imageFront: 'assets/cards/images/action_build_wonder_${i + 1}.png',
+          imageBack: 'assets/cards/images/action_dorsal.png',
+          mode: CardMode.back,
+          isUniqueUse: true));
     }
     return Future.value(actions);
   }

@@ -48,6 +48,8 @@ class _MainViewState extends State<MainView> {
   late List<ActionCard> actionCards = [];
   late List<ActionCard> actionBuildWonderCards = [];
   late List<ActionCard> actionSellCards = [];
+  late List<ActionCard> originalActions = [];
+
   var isLeaderSelected = false;
   List<LeaderCard> leaderCardSelected = [];
   var canIABuildWonder = false;
@@ -68,7 +70,7 @@ class _MainViewState extends State<MainView> {
       final actionSellCardsData = await repository.getActionSellCards();
       return {
         'leaderCardsData': leaderCardsData,
-        'actionCardsData': actionCardsData,
+        'actionCardsData': [...actionCardsData, ...actionCardsData],
         'actionBuildWonderCardsData': actionBuildWonderCardsData,
         'actionSellCardsData': actionSellCardsData,
       };
@@ -88,6 +90,7 @@ class _MainViewState extends State<MainView> {
         actionSellCards = value['actionSellCardsData']!
             .map<ActionCard>((card) => ActionCard(card: card))
             .toList();
+        originalActions = [...actionCards];
       });
     });
 
@@ -100,6 +103,18 @@ class _MainViewState extends State<MainView> {
         loading = false;
       });
     });
+  }
+
+  addActionBuildWonders() {
+    if (canIABuildWonder) {
+      actionCards.addAll(actionBuildWonderCards);
+    }
+  }
+
+  addActionSellCards() {
+    if (canSellCards) {
+      actionCards.addAll(actionSellCards);
+    }
   }
 
   shuffle<T>(List<T> list) {
@@ -180,55 +195,109 @@ class _MainViewState extends State<MainView> {
                           },
                           onSwipe: (prevIndex, currentIndex, direction) {
                             actionCards[prevIndex].card.mode = CardMode.back;
+
                             actionCards[currentIndex!].card.mode =
                                 CardMode.front;
+
+                            if (actionCards[prevIndex].card.isUniqueUse) {
+                              actionCards.removeAt(prevIndex);
+                              var randomIndexOriginalAction =
+                                  Random().nextInt(originalActions.length);
+                              actionCards.add(
+                                  originalActions[randomIndexOriginalAction]);
+
+                              actionCards[prevIndex].card.mode = CardMode.back;
+                              actionCards[currentIndex].card.mode =
+                                  CardMode.front;
+                            }
+
                             return true;
                           },
                         ),
                       ),
                     )
-                  : SizedBox(
-                      width: MediaQuery.of(context).size.width,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            var currentCard = leaderCards.firstWhere(
-                                (element) =>
-                                    element.card.mode == CardMode.front);
-                            leaderCardSelected.add(currentCard);
-                            isLeaderSelected = true;
-                          });
-                        },
-                        child: const Text('Seleccionar Lider'),
+                  : Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Switch(
+                                value: canIABuildWonder,
+                                onChanged: (value) {
+                                  setState(() {
+                                    canIABuildWonder = value;
+                                  });
+                                },
+                              ),
+                              const Text('IA construye maravilla'),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Switch(
+                                value: canSellCards,
+                                onChanged: (value) {
+                                  setState(() {
+                                    canSellCards = value;
+                                  });
+                                },
+                              ),
+                              const Text('Vender cartas'),
+                            ],
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  addActionBuildWonders();
+                                  addActionSellCards();
+                                  shuffle(actionCards);
+                                  shuffle(actionCards);
+                                  shuffle(actionCards);
+
+                                  var currentCard = leaderCards.firstWhere(
+                                      (element) =>
+                                          element.card.mode == CardMode.front);
+                                  leaderCardSelected.add(currentCard);
+                                  isLeaderSelected = true;
+                                });
+                              },
+                              child: const Text('Seleccionar Lider'),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
               SizedBox(
-                height: MediaQuery.of(context).size.height * 0.1,
+                height: MediaQuery.of(context).size.height * 0.05,
               ),
 
               // Boton de finalizar
 
               isLeaderSelected
-                  ? Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              isLeaderSelected = false;
-                              leaderCardSelected.forEach((element) {
-                                element.card.mode = CardMode.back;
-                              });
-                              leaderCardSelected.clear();
-                              shuffle(leaderCards);
-                              leaderCards[0].card.mode = CardMode.front;
-                              shuffle(actionCards);
-                              actionCards[0].card.mode = CardMode.front;
+                  ? SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            isLeaderSelected = false;
+                            leaderCardSelected.forEach((element) {
+                              element.card.mode = CardMode.back;
                             });
-                          },
-                          child: const Text('Finalizar'),
-                        ),
+                            leaderCardSelected.clear();
+                            actionCards.clear();
+                            actionCards = [...originalActions];
+                            canIABuildWonder = false;
+                            canSellCards = false;
+                            shuffle(leaderCards);
+                            leaderCards[0].card.mode = CardMode.front;
+                            shuffle(actionCards);
+                            actionCards[0].card.mode = CardMode.front;
+                          });
+                        },
+                        child: const Text('Finalizar'),
                       ),
                     )
                   : const SizedBox(),

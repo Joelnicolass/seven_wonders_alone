@@ -6,6 +6,7 @@ class GenericCard {
   final String imageFront;
   final String imageBack;
   CardMode mode;
+  bool isUniqueUse;
 
   GenericCard({
     required this.id,
@@ -13,6 +14,7 @@ class GenericCard {
     required this.imageFront,
     required this.imageBack,
     required this.mode,
+    this.isUniqueUse = false,
   });
 }
 
